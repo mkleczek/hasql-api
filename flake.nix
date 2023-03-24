@@ -90,8 +90,8 @@
         packages.default = self'.packages.hasql-api;
 
         # Default shell.
-        devShells.default =
-          config.mission-control.installToDevShell self'.devShells.main;
+        # devShells.default =
+        #   config.mission-control.installToDevShell self'.devShells.hasql-api;
       };
     };
 }

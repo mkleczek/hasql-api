@@ -39,6 +39,7 @@ library
   hs-source-dirs: src
   exposed-modules:
     Hasql.Api
+    Hasql.Api.Session
   build-depends:
     , base
     , bytestring
