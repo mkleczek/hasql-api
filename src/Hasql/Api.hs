@@ -1,4 +1,4 @@
-module Hasql.Api (Sql) where
+module Hasql.Api (Sql (..)) where
 
 import Data.ByteString as B
 import Hasql.Session as S
