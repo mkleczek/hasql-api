@@ -23,8 +23,8 @@
       perSystem = { self', system, lib, config, pkgs, ... }: {
         # The "main" project. You can have multiple projects, but this template
         # has only one.
-        haskellProjects.main = {
-          packages.hasql-api.root = ./.; # Auto-discovered by haskell-flake
+        haskellProjects.default = {
+          #packages.hasql-api.root = ./.; # Auto-discovered by haskell-flake
           overrides = self: super: { };
           devShell = {
             tools = hp: {
@@ -87,7 +87,7 @@
         };
 
         # Default package.
-        packages.default = self'.packages.main-hasql-api;
+        packages.default = self'.packages.hasql-api;
 
         # Default shell.
         devShells.default =
