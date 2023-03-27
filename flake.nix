@@ -12,7 +12,7 @@
 
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      #systems = [ "x86_64-linux" "aarch64-darwin" ];
+      #systems = [ "aarch64-darwin" ];
       systems = builtins.filter (s: s != "mipsel-linux") nixpkgs.lib.systems.flakeExposed;
       imports = [
         inputs.haskell-flake.flakeModule
@@ -23,9 +23,8 @@
       perSystem = { self', system, lib, config, pkgs, ... }: {
         # The "main" project. You can have multiple projects, but this template
         # has only one.
-        haskellProjects.default = {
+        haskellProjects.main = {
           #packages.hasql-api.root = ./.; # Auto-discovered by haskell-flake
-          overrides = self: super: { };
           devShell = {
             tools = hp: {
               treefmt = config.treefmt.build.wrapper;
@@ -87,11 +86,11 @@
         };
 
         # Default package.
-        packages.default = self'.packages.hasql-api;
+        packages.default = self'.packages.main-hasql-api;
 
         # Default shell.
-        # devShells.default =
-        #   config.mission-control.installToDevShell self'.devShells.hasql-api;
+        devShells.default =
+          config.mission-control.installToDevShell self'.devShells.main;
       };
     };
 }
