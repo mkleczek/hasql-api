@@ -1,4 +1,4 @@
-module Hasql.Api.Session (..) where
+module Hasql.Api.Session where
 
 import Hasql.Api
 import qualified Hasql.Connection as S
