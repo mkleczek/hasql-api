@@ -32,6 +32,15 @@ common shared
     AllowAmbiguousTypes
     MultiParamTypeClasses
     FunctionalDependencies
+    ConstraintKinds
+    DataKinds
+    FlexibleContexts
+    FlexibleInstances
+    GADTs
+    ScopedTypeVariables
+    TypeFamilies
+    TypeOperators
+    UndecidableInstances
 
   default-language:   Haskell2010
 
@@ -41,8 +50,10 @@ library
   exposed-modules:
     Hasql.Api
     Hasql.Api.Session
+    Hasql.Api.Eff
   build-depends:
     , base
     , bytestring
     , hasql
+    , effectful-core
 
