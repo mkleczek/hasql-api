@@ -12,7 +12,6 @@
 
   outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      #systems = [ "aarch64-darwin" ];
       systems = builtins.filter (s: s != "mipsel-linux") nixpkgs.lib.systems.flakeExposed;
       imports = [
         inputs.haskell-flake.flakeModule
@@ -89,8 +88,12 @@
         packages.default = self'.packages.main-hasql-api;
 
         # Default shell.
-        devShells.default =
-          config.mission-control.installToDevShell self'.devShells.main;
+        devShells.default = pkgs.mkShell {
+          inputsFrom = [
+            config.mission-control.devShell
+            self'.devShells.main
+          ];
+        };
       };
     };
 }
