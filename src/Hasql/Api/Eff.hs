@@ -5,7 +5,7 @@ import Effectful
 import Effectful.Dispatch.Dynamic (interpret, localSeqUnliftIO, send)
 import Effectful.Error.Static (Error, throwError)
 import Effectful.Reader.Static (Reader, ask)
-import Hasql.Api
+import qualified Hasql.Api as HA
 import Hasql.Connection (Connection)
 import Hasql.Session (QueryError, run, sql, statement)
 import Hasql.Statement (Statement)
@@ -21,8 +21,10 @@ type instance DispatchOf (SimpleSql s) = 'Dynamic
 
 type SqlSession q s es = (ParametrizedSql s :> es, SimpleSql q :> es)
 
-instance (SqlSession ByteString s es) => Sql s (Eff es) where
+instance SimpleSql q :> es => HA.SimpleSql q (Eff es) where
   sql = send . Sql
+
+instance ParametrizedSql s :> es => HA.StatementSql s (Eff es) where
   statement parms stmt = send $ Statement parms stmt
 
 runSimple :: (IOE :> es, Reader Connection :> es, Error QueryError :> es) => Eff (SimpleSql ByteString : es) a -> Eff es a
