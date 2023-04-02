@@ -38,6 +38,7 @@ common shared
     FlexibleInstances
     GADTs
     ScopedTypeVariables
+    RankNTypes
     TypeFamilies
     TypeOperators
     UndecidableInstances

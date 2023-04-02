@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Hasql.Api (SimpleSql (..), StatementSql (..), Sql, RunnableSql (..)) where
 
 class SimpleSql q m where
