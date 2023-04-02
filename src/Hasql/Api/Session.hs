@@ -4,6 +4,10 @@ module Hasql.Api.Session (
   StatementSql (..),
   RunnableSql (..),
   Sql,
+  S.QueryError (..),
+  S.ResultError (..),
+  S.RowError (..),
+  S.CommandError (..),
 ) where
 
 import Data.ByteString (ByteString)
@@ -15,6 +19,7 @@ import Hasql.Api
 import Hasql.Api.Eff (SqlEff (..))
 import Hasql.Connection (Connection)
 import qualified Hasql.Connection as S
+
 import qualified Hasql.Session as S
 import qualified Hasql.Statement as S
 
