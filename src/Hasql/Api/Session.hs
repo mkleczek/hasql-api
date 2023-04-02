@@ -20,6 +20,7 @@ import Hasql.Api.Eff (SqlEff (..))
 import Hasql.Connection (Connection)
 import qualified Hasql.Connection as S
 
+import Control.Monad.Except (MonadError)
 import qualified Hasql.Session as S
 import qualified Hasql.Statement as S
 
@@ -32,7 +33,7 @@ instance StatementSql S.Statement S.Session where
 instance RunnableSql S.Session S.Connection S.QueryError where
   run = S.run
 
-type Session a = forall m. (Monad m, SimpleSql ByteString m, StatementSql S.Statement m) => m a
+type Session a = forall m. (Monad m, MonadError S.QueryError m, SimpleSql ByteString m, StatementSql S.Statement m) => m a
 
 runSession :: forall es result. (IOE :> es, Error S.QueryError :> es) => Connection -> Eff (SqlEff ByteString S.Statement : es) result -> Eff es result
 runSession connection = interpret $ \env e -> do
