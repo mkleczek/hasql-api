@@ -9,8 +9,8 @@ module Hasql.Api.Session (
 ) where
 
 import Data.ByteString (ByteString)
-import Effectful (Eff, IOE, Limit (Unlimited), MonadIO (liftIO), Persistence (Ephemeral), UnliftStrategy (ConcUnlift), inject, runEff, (:>))
-import Effectful.Dispatch.Dynamic (interpret, localSeqUnliftIO, localUnliftIO)
+import Effectful (Eff, IOE, inject, runEff, (:>))
+import Effectful.Dispatch.Dynamic (interpret, localSeqUnliftIO)
 import Effectful.Error.Static (Error, runErrorNoCallStack, throwError)
 import Effectful.Reader.Static (Reader, ask)
 import Hasql.Api
@@ -33,24 +33,13 @@ instance RunnableSql S.Session where
 
 runSession :: forall es result. (IOE :> es, Error S.QueryError :> es) => Connection -> Eff (SqlEff ByteString S.Statement : es) result -> Eff es result
 runSession connection = interpret $ \env e -> do
-  er <- localUnliftIO env (ConcUnlift Ephemeral Unlimited) $ \_ -> do
-    putStrLn "Jestem tutaj api eff"
-    result <- do
-      case e of
-        SqlCommand q -> do
-          putStrLn $ "query: " ++ show q
-          r <- S.run (S.sql q) connection
-          case r of
-            Left err -> do
-              print err
-            Right _ -> do
-              putStrLn "success"
-          pure r
-        SqlStatement params stmt -> do
-          putStrLn "statement"
-          S.run (S.statement params stmt) connection
-    putStrLn "Jestem tutaj after"
-    pure result
+  er <- localSeqUnliftIO env $ \_ ->
+    S.run
+      ( case e of
+          SqlCommand q -> S.sql q
+          SqlStatement params stmt -> S.statement params stmt
+      )
+      connection
   either throwError pure er
 
 runSessionWithConnectionReader :: (IOE :> es, Error S.QueryError :> es, Reader Connection :> es) => Eff (SqlEff ByteString S.Statement : es) result -> Eff es result
