@@ -10,7 +10,7 @@ module Hasql.Api.Session (
 
 import Data.ByteString (ByteString)
 import Effectful (Eff, IOE, MonadIO (liftIO), inject, runEff, (:>))
-import Effectful.Dispatch.Dynamic (interpret, localSeqUnliftIO)
+import Effectful.Dispatch.Dynamic (interpret, localSeqUnliftIO, localUnliftIO)
 import Effectful.Error.Static (Error, runErrorNoCallStack, throwError)
 import Effectful.Reader.Static (Reader, ask)
 import Hasql.Api
@@ -38,10 +38,16 @@ runSession connection = interpret $ \env e -> do
     result <- do
       case e of
         SqlCommand q -> do
-          liftIO $ putStrLn $ "query: " ++ show q
-          S.run (S.sql q) connection
+          putStrLn $ "query: " ++ show q
+          r <- S.run (S.sql q) connection
+          case r of
+            Left err -> do
+              print err
+            Right _ -> do
+              putStrLn "success"
+          pure r
         SqlStatement params stmt -> do
-          liftIO $ putStrLn "statement"
+          putStrLn "statement"
           S.run (S.statement params stmt) connection
     putStrLn "Jestem tutaj after"
     pure result
