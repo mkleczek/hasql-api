@@ -2,7 +2,9 @@
 
 module Hasql.Api.Eff.Session (
   Session,
-  Sql (..),
+  Sql,
+  SqlQ (..),
+  SqlS (..),
   QueryError (..),
   ResultError (..),
   CommandError (..),
@@ -16,6 +18,7 @@ import Effectful (Eff, IOE, (:>))
 import Effectful.Dispatch.Dynamic (send)
 import qualified Effectful.Error.Static as E
 import qualified Effectful.Reader.Static as E
+import Hasql.Api (Sql, SqlQ (sql), SqlS (statement))
 import Hasql.Api.Eff
 import qualified Hasql.Connection as S
 import Hasql.Session (CommandError (..), QueryError (..), ResultError (..))
@@ -45,6 +48,8 @@ instance MonadReader S.Connection Session where
 instance MonadIO Session where
   liftIO ioa = Session $ liftIO ioa
 
-instance Sql ByteString S.Statement Session where
+instance SqlQ ByteString Session where
   sql q = Session (send @(SqlEff ByteString S.Statement) $ SqlCommand q)
+
+instance SqlS S.Statement Session where
   statement params stmt = Session (send @(SqlEff ByteString S.Statement) $ SqlStatement params stmt)

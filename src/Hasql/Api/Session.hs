@@ -20,8 +20,9 @@ import qualified Hasql.Connection as S
 import qualified Hasql.Session as S
 import qualified Hasql.Statement as S
 
-instance Sql ByteString S.Statement S.Session where
+instance SqlQ ByteString S.Session where
   sql = S.sql
+instance SqlS S.Statement S.Session where
   statement = S.statement
 
 instance RunnableSql S.Session where
