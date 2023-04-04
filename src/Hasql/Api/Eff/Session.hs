@@ -3,6 +3,9 @@
 module Hasql.Api.Eff.Session (
   Session,
   Sql (..),
+  QueryError (..),
+  ResultError (..),
+  CommandError (..),
 ) where
 
 import Control.Monad.Error.Class (MonadError (..))
@@ -15,7 +18,7 @@ import qualified Effectful.Error.Static as E
 import qualified Effectful.Reader.Static as E
 import Hasql.Api.Eff
 import qualified Hasql.Connection as S
-import Hasql.Session (QueryError)
+import Hasql.Session (CommandError (..), QueryError (..), ResultError (..))
 import qualified Hasql.Statement as S
 
 newtype Session a = Session (forall es. (SqlEff ByteString S.Statement :> es, E.Error QueryError :> es, E.Reader S.Connection :> es, IOE :> es) => Eff es a)
