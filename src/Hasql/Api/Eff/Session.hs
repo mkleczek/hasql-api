@@ -2,6 +2,7 @@
 
 module Hasql.Api.Eff.Session (
   Session,
+  run,
   Sql,
   SqlQ (..),
   SqlS (..),
@@ -17,9 +18,11 @@ import Data.ByteString (ByteString)
 import Effectful (Eff, IOE, (:>))
 import Effectful.Dispatch.Dynamic (send)
 import qualified Effectful.Error.Static as E
+import Effectful.Reader.Static (runReader)
 import qualified Effectful.Reader.Static as E
 import Hasql.Api (Sql, SqlQ (sql), SqlS (statement))
 import Hasql.Api.Eff
+import Hasql.Api.Session (runInIO)
 import qualified Hasql.Connection as S
 import Hasql.Session (CommandError (..), QueryError (..), ResultError (..))
 import qualified Hasql.Statement as S
@@ -53,3 +56,6 @@ instance SqlQ ByteString Session where
 
 instance SqlS S.Statement Session where
   statement params stmt = Session (send @(SqlEff ByteString S.Statement) $ SqlStatement params stmt)
+
+run :: Session a -> S.Connection -> IO (Either QueryError a)
+run (Session eff) c = runInIO c $ runReader c eff

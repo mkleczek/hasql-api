@@ -5,6 +5,7 @@ module Hasql.Api.Session (
   S.ResultError (..),
   S.RowError (..),
   S.CommandError (..),
+  runInIO,
 ) where
 
 import Data.ByteString (ByteString)
@@ -44,10 +45,13 @@ runSession connection = interpret $ \env e -> do
 runSessionWithConnectionReader :: (IOE :> es, Error S.QueryError :> es, Reader Connection :> es) => Eff (SqlEff ByteString S.Statement : es) result -> Eff es result
 runSessionWithConnectionReader e = ask >>= flip runSession e
 
-runS :: (IOE :> es) => Connection -> Eff (SqlEff ByteString S.Statement : es) result -> Eff es (Either S.QueryError result)
+runS :: (IOE :> es) => Connection -> Eff (Error S.QueryError : SqlEff ByteString S.Statement : es) result -> Eff es (Either S.QueryError result)
 runS connection eff = runErrorNoCallStack (runSession connection (inject eff))
 
-instance RunnableSql (Eff '[SqlEff ByteString S.Statement, IOE]) where
-  type C (Eff '[SqlEff ByteString S.Statement, IOE]) = S.Connection
-  type E (Eff '[SqlEff ByteString S.Statement, IOE]) = S.QueryError
-  run connection = runEff . flip runS connection
+runInIO :: S.Connection -> Eff '[Error S.QueryError, SqlEff ByteString S.Statement, IOE] result -> IO (Either S.QueryError result)
+runInIO connection eff = runEff $ runS connection eff
+
+-- instance RunnableSql (Eff '[SqlEff ByteString S.Statement, IOE]) where
+--   type C (Eff '[SqlEff ByteString S.Statement, IOE]) = S.Connection
+--   type E (Eff '[SqlEff ByteString S.Statement, IOE]) = S.QueryError
+--   run connection = runEff . flip runS connection
