@@ -33,7 +33,7 @@ instance RunnableSql S.Session where
 
 runSession :: forall es result. (IOE :> es, Error S.QueryError :> es) => Connection -> Eff (SqlEff ByteString S.Statement : es) result -> Eff es result
 runSession connection = interpret $ \env e -> do
-  er <- localSeqUnliftIO env $ \_ -> do
+  er <- localUnliftIO env (ConcUnlift Ephemeral Unlimited) $ \_ -> do
     putStrLn "Jestem tutaj api eff"
     result <- do
       case e of
