@@ -1,16 +1,18 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ImpredicativeTypes #-}
+{-# LANGUAGE LiberalTypeSynonyms #-}
+{-# LANGUAGE PolyKinds #-}
 
-module Hasql.Api (SimpleSql (..), StatementSql (..), Sql, RunnableSql (..)) where
+module Hasql.Api (Sql (..), RunnableSql (..)) where
 
-class SimpleSql q m where
+class Sql q s m where
   sql :: q -> m ()
-
-class StatementSql s m where
   statement :: parameters -> s parameters result -> m result
 
-class (SimpleSql q m, StatementSql s m) => Sql q s m
+class RunnableSql m where
+  type C m
+  type E m
+  run :: m a -> C m -> IO (Either (E m) a)
 
-instance (SimpleSql q m, StatementSql s m) => Sql q s m
+-- type Session a = forall m. (Sql m) => m a
 
-class RunnableSql m c e where
-  run :: m a -> c -> IO (Either e a)
+-- type Session :: Type -> Type
