@@ -35,18 +35,14 @@ runSession :: forall es result. (IOE :> es, Error S.QueryError :> es) => Connect
 runSession connection = interpret $ \env e -> do
   er <- localSeqUnliftIO env $ \_ -> do
     putStrLn "Jestem tutaj api eff"
-    result <-
-      let x = case e of
-            SqlCommand q -> do
-              liftIO $ putStrLn $ "query: " ++ show q
-              S.sql q
-            SqlStatement params stmt -> do
-              liftIO $ putStrLn "statement"
-              S.statement params stmt
-       in do
-            putStrLn "Jestem tutaj after 111"
-            res <- S.run x connection
-            pure res
+    result <- do
+      case e of
+        SqlCommand q -> do
+          liftIO $ putStrLn $ "query: " ++ show q
+          S.run (S.sql q) connection
+        SqlStatement params stmt -> do
+          liftIO $ putStrLn "statement"
+          S.run (S.statement params stmt) connection
     putStrLn "Jestem tutaj after"
     pure result
   either throwError pure er
