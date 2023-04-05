@@ -1,10 +1,14 @@
 module Hasql.Api.Eff.Session.Run (
   Session (..),
   run,
+  QueryError (..),
+  ResultError (..),
+  CommandError (..),
+  RowError (..),
 ) where
 
 import qualified Hasql.Connection as S
-import Hasql.Session (QueryError)
+import Hasql.Session (CommandError (..), QueryError (..), ResultError (..), RowError (..))
 
 newtype Session a = Session (S.Connection -> IO (Either QueryError a))
 
