@@ -3,10 +3,16 @@
 module Hasql.Api.Eff.WithResource (
   WithResource (..),
   WithConnection,
+  DynamicResource (..),
+  DynamicConnection,
   withResource,
   Connection,
   withConnection,
   nonPooledConnection,
+  acquire,
+  release,
+  runWithDynamic,
+  runConnecting,
 ) where
 
 import Control.Exception.Safe (bracket)
