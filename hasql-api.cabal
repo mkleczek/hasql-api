@@ -54,10 +54,12 @@ library
     Hasql.Api.Eff
     Hasql.Api.Eff.Session
     Hasql.Api.Eff.Session.Run
+    Hasql.Api.Eff.WithResource
   build-depends:
     , base
     , bytestring
     , hasql
     , effectful-core
     , mtl
+    , safe-exceptions
 
