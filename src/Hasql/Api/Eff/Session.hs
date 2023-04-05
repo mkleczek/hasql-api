@@ -4,7 +4,7 @@ module Hasql.Api.Eff.Session (
   Session,
   sql,
   statement,
-  run,
+  runSession,
   QueryError (..),
   ResultError (..),
   CommandError (..),
@@ -55,5 +55,5 @@ sql q = Session (send @(SqlEff ByteString S.Statement) $ SqlCommand q)
 statement :: forall parameters result. parameters -> S.Statement parameters result -> Session result
 statement params stmt = Session (send @(SqlEff ByteString S.Statement) $ SqlStatement params stmt)
 
-run :: Session a -> S.Connection -> IO (Either QueryError a)
-run (Session eff) c = runInIO c $ runReader c eff
+runSession :: Session a -> S.Connection -> IO (Either QueryError a)
+runSession (Session eff) c = runInIO c $ runReader c eff
