@@ -69,7 +69,7 @@ runWithDynamic = interpret $ \env (WithResource action) ->
 runConnecting :: (Error ConnectionError :> es, IOE :> es) => Settings -> Eff (DynamicConnection : es) a -> Eff es a
 runConnecting settings = interpret $ \env -> \case
   Acquire -> localSeqUnliftIO env (const $ C.acquire settings) >>= either throwError pure
-  (Release connection) -> localSeqUnliftIO env $ const $ C.release connection
+  Release connection -> localSeqUnliftIO env $ const $ C.release connection
 
 nonPooledConnection :: (Error ConnectionError :> es, IOE :> es) => Settings -> Eff (WithConnection : DynamicConnection : es) a -> Eff es a
 nonPooledConnection s = runConnecting s . runWithDynamic
