@@ -55,6 +55,7 @@ library
     Hasql.Api.Eff.Session
     Hasql.Api.Eff.Session.Run
     Hasql.Api.Eff.WithResource
+    Hasql.Api.Eff.Session.Legacy
   build-depends:
     , base
     , bytestring
