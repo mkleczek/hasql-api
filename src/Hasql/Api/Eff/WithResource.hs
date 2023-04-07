@@ -1,5 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
-
 module Hasql.Api.Eff.WithResource (
   WithResource (..),
   WithConnection,
@@ -17,7 +15,7 @@ module Hasql.Api.Eff.WithResource (
 
 import Control.Exception.Safe (bracket)
 import Effectful (Dispatch (..), DispatchOf, Eff, Effect, IOE, (:>))
-import Effectful.Dispatch.Dynamic (interpret, localSeqUnlift, localSeqUnliftIO, reinterpret, send)
+import Effectful.Dispatch.Dynamic (interpret, localSeqUnlift, localSeqUnliftIO, send)
 import Effectful.Error.Static (Error, throwError)
 import Hasql.Connection (Connection, ConnectionError, Settings)
 import qualified Hasql.Connection as C
@@ -38,7 +36,7 @@ type instance DispatchOf (DynamicResource r) = 'Dynamic
 withResource :: (WithResource r :> es) => (r -> Eff es a) -> Eff es a
 withResource = send . WithResource
 
-withConnection :: (WithConnection :> es) => (Connection -> Eff es a) -> Eff es a
+withConnection :: (WithResource Connection :> es) => (Connection -> Eff es a) -> Eff es a
 withConnection = withResource
 
 -- nonPooledConnection :: (Error ConnectionError :> es, IOE :> es) => Settings -> Eff (WithConnection : es) a -> Eff es a
@@ -59,7 +57,9 @@ acquire = send Acquire
 release :: forall r es. (DynamicResource r :> es) => r -> Eff es ()
 release = send . Release
 
-runWithDynamic :: forall r es a. (DynamicResource r :> es) => Eff (WithResource r : es) a -> Eff es a
+type ActionEffHandler effc es = forall a les. effc les => Eff les a -> Eff es a
+
+runWithDynamic :: DynamicResource r :> es => Eff (WithResource r : es) a -> Eff es a
 runWithDynamic = interpret $ \env (WithResource action) ->
   bracket
     acquire
