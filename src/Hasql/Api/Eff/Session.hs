@@ -32,51 +32,49 @@ import qualified Hasql.Statement as S
 
 type SessionEffects es = (SqlEff ByteString S.Statement :> es, E.Error QueryError :> es, E.Reader S.Connection :> es, IOE :> es)
 
-type Session a = forall es. (SessionEffects es) => Eff es a
+newtype Session a = Session (forall es. (SessionEffects es) => Eff es a)
+instance Functor Session where
+  fmap f (Session eff) = Session (fmap f eff)
+  {-# INLINEABLE fmap #-}
 
--- instance Functor Session where
---   fmap f (Session eff) = Session (fmap f eff)
---   {-# INLINEABLE fmap #-}
+instance Applicative Session where
+  pure a = Session (pure a)
+  {-# INLINEABLE pure #-}
+  (Session f) <*> (Session eff) = Session (f <*> eff)
+  {-# INLINEABLE (<*>) #-}
 
--- instance Applicative Session where
---   pure a = Session (pure a)
---   {-# INLINEABLE pure #-}
---   (Session f) <*> (Session eff) = Session (f <*> eff)
---   {-# INLINEABLE (<*>) #-}
+instance Monad Session where
+  (Session eff) >>= f =
+    Session $
+      eff >>= \a -> let (Session effb) = f a in effb
+  {-# INLINEABLE (>>=) #-}
 
--- instance Monad Session where
---   (Session eff) >>= f =
---     Session $
---       eff >>= \a -> let (Session effb) = f a in effb
---   {-# INLINEABLE (>>=) #-}
-
-instance E.Error QueryError :> es => MonadError QueryError (Eff es) where
-  throwError = E.throwError
+instance MonadError QueryError Session where
+  throwError e = Session $ E.throwError e
   {-# INLINEABLE throwError #-}
-  catchError eff h = E.catchError eff $ \_ e -> h e -- (Session eff) h = Session $ E.catchError eff $ \_ e -> let (Session eff1) = h e in eff1
+  catchError (Session eff) h = Session $ E.catchError eff $ \_ e -> let (Session eff1) = h e in eff1
   {-# INLINEABLE catchError #-}
 
-instance E.Reader S.Connection :> es => MonadReader S.Connection (Eff es) where
-  ask = E.ask
+instance MonadReader S.Connection Session where
+  ask = Session E.ask
   {-# INLINEABLE ask #-}
-  local = E.local
+  local f (Session eff) = Session $ E.local f eff
   {-# INLINEABLE local #-}
-
--- instance MonadIO Session where
---   liftIO ioa = Session $ liftIO ioa
---   {-# INLINEABLE liftIO #-}
+instance MonadIO Session where
+  liftIO ioa = Session $ liftIO ioa
+  {-# INLINEABLE liftIO #-}
 
 {-# INLINEABLE sql #-}
 sql :: ByteString -> Session ()
-sql q = (send @(SqlEff ByteString S.Statement) $ SqlCommand q)
+sql q = Session (send @(SqlEff ByteString S.Statement) $ SqlCommand q)
 
 {-# INLINEABLE statement #-}
 statement :: forall parameters result. parameters -> S.Statement parameters result -> Session result
-statement params stmt = (send @(SqlEff ByteString S.Statement) $ SqlStatement params stmt)
+statement params stmt = Session (send @(SqlEff ByteString S.Statement) $ SqlStatement params stmt)
 
 {-# INLINEABLE runWithHandler #-}
 runWithHandler :: SessionEffects es => (Eff es a -> result) -> Session a -> result
-runWithHandler h = h
+runWithHandler h (Session eff) = h eff
 
 {-# INLINEABLE runWithConnection #-}
 runWithConnection :: (WithConnection :> es, Error QueryError :> es, SqlEff ByteString S.Statement :> es, IOE :> es) => Session a -> Eff es a

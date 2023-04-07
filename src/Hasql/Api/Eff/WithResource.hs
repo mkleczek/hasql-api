@@ -72,4 +72,4 @@ runConnecting settings = interpret $ \env -> \case
   Release connection -> localSeqUnliftIO env $ const $ C.release connection
 
 nonPooledConnection :: (Error ConnectionError :> es, IOE :> es) => Settings -> Eff (WithConnection : DynamicConnection : es) a -> Eff es a
-nonPooledConnection s = runConnecting s . runWithDynamic
+nonPooledConnection settings = runConnecting settings . runWithDynamic
