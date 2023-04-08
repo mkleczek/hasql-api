@@ -26,7 +26,7 @@ instance SqlQ ByteString S.Session where
 instance SqlS S.Statement S.Session where
   statement = S.statement
 
-runSessionWithConnection :: (WithConnection :> es, Error S.QueryError :> es, IOE :> es) => Eff (SqlEff ByteString S.Statement : es) result -> Eff es result
+runSessionWithConnection :: (WithConnection (Eff es) :> es, Error S.QueryError :> es, IOE :> es) => Eff (SqlEff ByteString S.Statement : es) result -> Eff es result
 runSessionWithConnection eff = withConnection $ \c -> runSession c eff
 
 runSession :: forall es result. (IOE :> es, Error S.QueryError :> es) => S.Connection -> Eff (SqlEff ByteString S.Statement : es) result -> Eff es result

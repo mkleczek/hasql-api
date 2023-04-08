@@ -77,8 +77,8 @@ runWithHandler :: SessionEffects es => (Eff es a -> result) -> Session a -> resu
 runWithHandler h (Session eff) = h eff
 
 {-# INLINEABLE runWithConnection #-}
-runWithConnection :: (WithConnection :> es, Error QueryError :> es, SqlEff ByteString S.Statement :> es, IOE :> es) => Session a -> Eff es a
-runWithConnection session = withConnection (run session)
+runWithConnection :: forall es a. (Error QueryError :> es, SqlEff ByteString S.Statement :> es, IOE :> es, WithConnection (Eff es) :> es) => Session a -> Eff es a
+runWithConnection session = withConnection (run @es session)
 
 {-# INLINEABLE run #-}
 run :: (Error QueryError :> es, SqlEff ByteString S.Statement :> es, IOE :> es) => Session a -> S.Connection -> Eff es a

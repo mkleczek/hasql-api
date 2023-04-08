@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications #-}
+
 module Hasql.Api.Eff.WithResource (
   WithResource (..),
   WithConnection,
@@ -6,7 +8,6 @@ module Hasql.Api.Eff.WithResource (
   withResource,
   Connection,
   withConnection,
-  nonPooledConnection,
   acquire,
   release,
   runWithDynamic,
@@ -14,18 +15,20 @@ module Hasql.Api.Eff.WithResource (
 ) where
 
 import Control.Exception.Safe (bracket)
-import Effectful (Dispatch (..), DispatchOf, Eff, Effect, IOE, (:>))
-import Effectful.Dispatch.Dynamic (interpret, localSeqUnlift, localSeqUnliftIO, send)
-import Effectful.Error.Static (Error, throwError)
+import Effectful (Dispatch (..), DispatchOf, Eff, Effect, IOE, Subset, inject, (:>))
+import Effectful.Dispatch.Dynamic (interpret, localSeqUnliftIO, send)
+import qualified Effectful.Error.Static as E
 import Hasql.Connection (Connection, ConnectionError, Settings)
 import qualified Hasql.Connection as C
 
-data WithResource r :: Effect where
-  WithResource :: (r -> m a) -> WithResource r m a
+import Effectful.Error.Static (throwError)
 
-type instance DispatchOf (WithResource r) = 'Dynamic
+data WithResource r eff :: Effect where
+  WithResource :: (r -> eff a) -> WithResource r eff m a
 
-type WithConnection = WithResource Connection
+type instance DispatchOf (WithResource r eff) = 'Dynamic
+
+type WithConnection eff = WithResource Connection eff
 
 data DynamicResource resource :: Effect where
   Acquire :: DynamicResource resource m resource
@@ -33,10 +36,10 @@ data DynamicResource resource :: Effect where
 
 type instance DispatchOf (DynamicResource r) = 'Dynamic
 
-withResource :: (WithResource r :> es) => (r -> Eff es a) -> Eff es a
+withResource :: forall r eff es a. (WithResource r eff :> es) => (r -> eff a) -> Eff es a
 withResource = send . WithResource
 
-withConnection :: (WithResource Connection :> es) => (Connection -> Eff es a) -> Eff es a
+withConnection :: (WithConnection eff :> es) => (Connection -> eff a) -> Eff es a
 withConnection = withResource
 
 -- nonPooledConnection :: (Error ConnectionError :> es, IOE :> es) => Settings -> Eff (WithConnection : es) a -> Eff es a
@@ -59,17 +62,23 @@ release = send . Release
 
 type ActionEffHandler effc es = forall a les. effc les => Eff les a -> Eff es a
 
-runWithDynamic :: DynamicResource r :> es => Eff (WithResource r : es) a -> Eff es a
-runWithDynamic = interpret $ \env (WithResource action) ->
+runWithDynamicH :: (DynamicResource r :> es, Subset les es) => (forall b. Eff les b -> Eff es b) -> Eff (WithResource r (Eff les) : es) a -> Eff es a
+runWithDynamicH handler = interpret $ \_ (WithResource action) ->
   bracket
     acquire
     release
-    $ \res -> localSeqUnlift env $ \unlift -> unlift $ action res
+    (handler . action)
 
-runConnecting :: (Error ConnectionError :> es, IOE :> es) => Settings -> Eff (DynamicConnection : es) a -> Eff es a
+runWithDynamic :: (DynamicResource r :> es, Subset les es) => Eff (WithResource r (Eff les) : es) a -> Eff es a
+runWithDynamic = runWithDynamicH inject
+
+runConnecting :: (E.Error ConnectionError :> es, IOE :> es) => Settings -> Eff (DynamicConnection : es) a -> Eff es a
 runConnecting settings = interpret $ \env -> \case
   Acquire -> localSeqUnliftIO env (const $ C.acquire settings) >>= either throwError pure
   Release connection -> localSeqUnliftIO env $ const $ C.release connection
 
-nonPooledConnection :: (Error ConnectionError :> es, IOE :> es) => Settings -> Eff (WithConnection : DynamicConnection : es) a -> Eff es a
-nonPooledConnection settings = runConnecting settings . runWithDynamic
+-- nonPooledConnection :: forall es les a. (E.Error ConnectionError :> es, IOE :> es, Subset les es) => Settings -> Eff (WithConnection (Eff les) : es) a -> Eff es a
+-- nonPooledConnection settings eff = runConnecting settings $ runWithDynamic (prepend eff)
+
+-- prepend :: Eff (e1 : es) a -> Eff (e1 : e2 : es) a
+-- prepend = inject
