@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Hasql.Api.Eff.WithResource (
   WithResource (..),
   WithConnection,
@@ -12,6 +10,7 @@ module Hasql.Api.Eff.WithResource (
   release,
   runWithDynamic,
   runConnecting,
+  runReaderWithResource,
 ) where
 
 import Control.Exception.Safe (bracket)
@@ -22,6 +21,7 @@ import Hasql.Connection (Connection, ConnectionError, Settings)
 import qualified Hasql.Connection as C
 
 import Effectful.Error.Static (throwError)
+import Effectful.Reader.Static (Reader, runReader)
 
 data WithResource r eff :: Effect where
   WithResource :: (r -> eff a) -> WithResource r eff m a
@@ -82,3 +82,6 @@ runConnecting settings = interpret $ \env -> \case
 
 -- prepend :: Eff (e1 : es) a -> Eff (e1 : e2 : es) a
 -- prepend = inject
+
+runReaderWithResource :: (WithResource r (Eff les) :> es) => Eff (Reader r : les) a -> Eff es a
+runReaderWithResource eff = withResource $ flip runReader eff

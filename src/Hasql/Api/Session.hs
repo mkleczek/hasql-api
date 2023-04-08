@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications #-}
+
 module Hasql.Api.Session (
   Sql,
   S.QueryError (..),
@@ -5,6 +7,7 @@ module Hasql.Api.Session (
   S.RowError (..),
   S.CommandError (..),
   runSession,
+  runSessionWithConnectionReader,
   runInIO,
 ) where
 
@@ -17,7 +20,6 @@ import Hasql.Api
 import Hasql.Api.Eff (SqlEff (..))
 import qualified Hasql.Connection as S
 
-import Hasql.Api.Eff.WithResource (WithConnection, withConnection)
 import qualified Hasql.Session as S
 import qualified Hasql.Statement as S
 
@@ -25,9 +27,6 @@ instance SqlQ ByteString S.Session where
   sql = S.sql
 instance SqlS S.Statement S.Session where
   statement = S.statement
-
-runSessionWithConnection :: (WithConnection (Eff es) :> es, Error S.QueryError :> es, IOE :> es) => Eff (SqlEff ByteString S.Statement : es) result -> Eff es result
-runSessionWithConnection eff = withConnection $ \c -> runSession c eff
 
 runSession :: forall es result. (IOE :> es, Error S.QueryError :> es) => S.Connection -> Eff (SqlEff ByteString S.Statement : es) result -> Eff es result
 runSession connection = interpret $ \env e -> do
@@ -40,6 +39,7 @@ runSession connection = interpret $ \env e -> do
       connection
   either throwError pure er
 
+{-# INLINE runSessionWithConnectionReader #-}
 runSessionWithConnectionReader :: (IOE :> es, Error S.QueryError :> es, Reader S.Connection :> es) => Eff (SqlEff ByteString S.Statement : es) result -> Eff es result
 runSessionWithConnectionReader e = ask >>= flip runSession e
 

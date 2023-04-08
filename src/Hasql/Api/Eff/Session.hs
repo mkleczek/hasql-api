@@ -4,6 +4,7 @@
 module Hasql.Api.Eff.Session (
   Session,
   SessionEffects,
+  toEff,
   sql,
   statement,
   QueryError (..),
@@ -83,3 +84,7 @@ runWithConnection session = withConnection (run @es session)
 {-# INLINEABLE run #-}
 run :: (Error QueryError :> es, SqlEff ByteString S.Statement :> es, IOE :> es) => Session a -> S.Connection -> Eff es a
 run session connection = runWithHandler (runReader connection) session
+
+{-# INLINE toEff #-}
+toEff :: SessionEffects es => Session a -> Eff es a
+toEff (Session eff) = eff
