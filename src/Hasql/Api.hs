@@ -12,6 +12,7 @@ class SqlS s m where
 class (SqlQ q m, SqlS s m) => Sql q s m
 
 instance (SqlQ q m, SqlS s m) => Sql q s m
+
 class RunnableSql m where
   type C m
   type E m

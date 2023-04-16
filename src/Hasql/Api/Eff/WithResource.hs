@@ -16,12 +16,11 @@ module Hasql.Api.Eff.WithResource (
 import Control.Exception.Safe (bracket)
 import Effectful (Dispatch (..), DispatchOf, Eff, Effect, IOE, Subset, inject, (:>))
 import Effectful.Dispatch.Dynamic (interpret, localSeqUnliftIO, send)
-import qualified Effectful.Error.Static as E
 import Hasql.Connection (Connection, ConnectionError, Settings)
 import qualified Hasql.Connection as C
 
-import Effectful.Error.Static (throwError)
 import Effectful.Reader.Static (Reader, runReader)
+import Hasql.Api.Eff.Throws
 
 data WithResource r eff :: Effect where
   WithResource :: (r -> eff a) -> WithResource r eff m a
@@ -72,7 +71,7 @@ runWithDynamicH handler = interpret $ \_ (WithResource action) ->
 runWithDynamic :: (DynamicResource r :> es, Subset les es) => Eff (WithResource r (Eff les) : es) a -> Eff es a
 runWithDynamic = runWithDynamicH inject
 
-runConnecting :: (E.Error ConnectionError :> es, IOE :> es) => Settings -> Eff (DynamicConnection : es) a -> Eff es a
+runConnecting :: (Throws ConnectionError :> es, IOE :> es) => Settings -> Eff (DynamicConnection : es) a -> Eff es a
 runConnecting settings = interpret $ \env -> \case
   Acquire -> localSeqUnliftIO env (const $ C.acquire settings) >>= either throwError pure
   Release connection -> localSeqUnliftIO env $ const $ C.release connection

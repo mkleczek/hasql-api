@@ -21,17 +21,17 @@ import Control.Monad.Reader.Class (MonadReader (..))
 import Data.ByteString (ByteString)
 import Effectful (Eff, IOE, (:>))
 import Effectful.Dispatch.Dynamic (send)
-import Effectful.Error.Static (Error)
-import qualified Effectful.Error.Static as E
 import Effectful.Reader.Static (runReader)
 import qualified Effectful.Reader.Static as E
 import Hasql.Api.Eff
+import Hasql.Api.Eff.Throws
+import qualified Hasql.Api.Eff.Throws as T
 import Hasql.Api.Eff.WithResource (WithConnection, withConnection)
 import qualified Hasql.Connection as S
 import Hasql.Session (CommandError (..), QueryError (..), ResultError (..))
 import qualified Hasql.Statement as S
 
-type SessionEffects es = (SqlEff ByteString S.Statement :> es, E.Error QueryError :> es, E.Reader S.Connection :> es, IOE :> es)
+type SessionEffects es = (SqlEff ByteString S.Statement :> es, Throws QueryError :> es, E.Reader S.Connection :> es, IOE :> es)
 
 newtype Session a = Session (forall es. (SessionEffects es) => Eff es a)
 instance Functor Session where
@@ -51,9 +51,9 @@ instance Monad Session where
   {-# INLINEABLE (>>=) #-}
 
 instance MonadError QueryError Session where
-  throwError e = Session $ E.throwError e
+  throwError e = Session $ T.throwError e
   {-# INLINEABLE throwError #-}
-  catchError (Session eff) h = Session $ E.catchError eff $ \_ e -> let (Session eff1) = h e in eff1
+  catchError (Session eff) h = Session $ T.catchError eff $ \e -> let (Session eff1) = h e in eff1
   {-# INLINEABLE catchError #-}
 
 instance MonadReader S.Connection Session where
@@ -78,11 +78,11 @@ runWithHandler :: SessionEffects es => (Eff es a -> result) -> Session a -> resu
 runWithHandler h (Session eff) = h eff
 
 {-# INLINEABLE runWithConnection #-}
-runWithConnection :: forall es a. (Error QueryError :> es, SqlEff ByteString S.Statement :> es, IOE :> es, WithConnection (Eff es) :> es) => Session a -> Eff es a
+runWithConnection :: forall es a. (Throws QueryError :> es, SqlEff ByteString S.Statement :> es, IOE :> es, WithConnection (Eff es) :> es) => Session a -> Eff es a
 runWithConnection session = withConnection (run @es session)
 
 {-# INLINEABLE run #-}
-run :: (Error QueryError :> es, SqlEff ByteString S.Statement :> es, IOE :> es) => Session a -> S.Connection -> Eff es a
+run :: (Throws QueryError :> es, SqlEff ByteString S.Statement :> es, IOE :> es) => Session a -> S.Connection -> Eff es a
 run session connection = runWithHandler (runReader connection) session
 
 {-# INLINE toEff #-}
