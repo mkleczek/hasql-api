@@ -84,6 +84,7 @@ catchErrorWithCallStack m handler = unsafeEff $ \es0 -> do
   either
     ( \(cs, e) -> seqUnliftIO es0 $ \unlift -> do
         putStrLn "handling error"
+        print $ prettyCallStack cs
         unlift $ handler cs e
     )
     pure
