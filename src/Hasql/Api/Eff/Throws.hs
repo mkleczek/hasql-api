@@ -80,7 +80,13 @@ catchErrorWithCallStack m handler = unsafeEff $ \es0 -> do
     r <- tryErrorIO unmask eid es `onException` unconsEnv es
     unconsEnv es
     pure r
-  either (\err -> seqUnliftIO es0 (uncurry handler err &)) pure res
+  either
+    ( \(cs, e) -> seqUnliftIO es0 $ \unlift -> do
+        putStrLn "handling error"
+        unlift $ handler cs e
+    )
+    pure
+    res
   where
     tryErrorIO unmask eid es =
       try (unmask $ unEff m es) >>= \case
