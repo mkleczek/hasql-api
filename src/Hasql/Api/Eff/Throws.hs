@@ -75,6 +75,7 @@ catchErrorWithCallStack ::
   Eff es a
 catchErrorWithCallStack m handler = unsafeEff $ \es0 -> do
   res <- mask $ \unmask -> do
+    putStrLn "catchErrorWithCallStack"
     eid <- newErrorId
     es <- consEnv (Throws @e eid) dummyRelinker es0
     r <- tryErrorIO unmask eid es `onException` unconsEnv es
