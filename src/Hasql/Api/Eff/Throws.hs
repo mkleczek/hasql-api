@@ -12,7 +12,6 @@ module Hasql.Api.Eff.Throws (
 ) where
 
 import Control.Exception
-import Data.Function ((&))
 import Data.Functor ((<&>))
 import Data.Unique
 import Effectful
@@ -73,29 +72,18 @@ catchErrorWithCallStack ::
   Eff (Throws e : es) a ->
   (CallStack -> e -> Eff es a) ->
   Eff es a
-catchErrorWithCallStack m handler = unsafeEff $ \es0 -> do
-  res <- mask $ \unmask -> do
-    putStrLn "catchErrorWithCallStack"
+catchErrorWithCallStack eff handler = unsafeEff $ \es0 -> do
+  mask $ \unmask -> do
     eid <- newErrorId
     es <- consEnv (Throws @e eid) dummyRelinker es0
-    r <- tryErrorIO unmask eid es `onException` unconsEnv es
-    unconsEnv es
-    pure r
-  either
-    ( \(cs, e) -> seqUnliftIO es0 $ \unlift -> do
-        putStrLn "handling error"
-        print $ prettyCallStack cs
-        unlift $ handler cs e
-    )
-    pure
-    res
-  where
-    tryErrorIO unmask eid es =
-      try (unmask $ unEff m es) >>= \case
-        Right a -> pure $ Right a
-        Left ex ->
-          tryHandler ex eid (curry Left) $
-            throwIO ex
+    catchErrorIO
+      eid
+      -- unmask when running eff
+      (unmask (unEff eff es) `finally` unconsEnv es)
+      $ \(ErrorWrapper _ cs e) ->
+        seqUnliftIO es0 $ \unlift ->
+          -- unmask when running handler
+          unmask $ unlift $ handler cs $ unsafeCoerce e
 
 throwError ::
   forall e es a.
@@ -118,18 +106,6 @@ newtype ErrorId = ErrorId Unique
 -}
 newErrorId :: IO ErrorId
 newErrorId = ErrorId <$> newUnique
-
-tryHandler ::
-  SomeException ->
-  ErrorId ->
-  (CallStack -> e -> r) ->
-  IO r ->
-  IO r
-tryHandler ex eid0 handler next = case fromException ex of
-  Just (ErrorWrapper eid cs e)
-    | eid0 == eid -> pure $ handler cs (unsafeCoerce e)
-    | otherwise -> next
-  Nothing -> next
 
 data ErrorWrapper = ErrorWrapper !ErrorId CallStack Any
 instance Show ErrorWrapper where

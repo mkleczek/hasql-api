@@ -46,6 +46,7 @@ common shared
     LambdaCase
     DeriveFunctor
     DerivingStrategies
+    QuantifiedConstraints
 
   default-language:   Haskell2010
 
@@ -56,6 +57,7 @@ library
     Hasql.Api
     Hasql.Api.Session
     Hasql.Api.Eff
+    Hasql.Api.Eff.Util
     Hasql.Api.Eff.Throws
     Hasql.Api.Eff.Session
     Hasql.Api.Eff.Session.Run
