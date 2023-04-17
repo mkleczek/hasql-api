@@ -53,10 +53,13 @@ instance Monad Session where
 instance MonadError QueryError Session where
   throwError e = Session $ T.throwError e
   {-# INLINEABLE throwError #-}
-  catchError (Session eff) handler = Session $ inject $ T.catchError eff $ \e -> do
-    let (Session eff1) = handler0 e handler
-    liftIO $ putStrLn "dupa"
-    eff1
+  catchError (Session eff) handler = do
+    liftIO $ putStrLn "MonadError.catchError"
+    Session $ T.catchError eff $ \e -> do
+      liftIO $ putStrLn "dupa dupa dupa catchError MonadError"
+      let (Session eff1) = handler0 e handler
+      res <- eff1
+      pure res
     where
       handler0 err h = do
         liftIO $ putStrLn "MondaError"
