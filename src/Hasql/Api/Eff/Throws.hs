@@ -52,9 +52,7 @@ runErrorNoCallStack ::
 runErrorNoCallStack = fmap (either (Left . snd) Right) . runError
 
 cerr :: Eff (Throws e : es) a -> (e -> Eff es a) -> Eff es a
-cerr eff handler = do
-  res <- runErrorNoCallStack eff
-  _
+cerr eff handler = runErrorNoCallStack eff >>= either handler pure
 
 -- | Throw an error of type @e@.
 throwError ::
