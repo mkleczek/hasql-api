@@ -44,7 +44,11 @@ onErrorWithCallStack eff action = unsafeEff $ \es -> do
 -- letsTry eff (Catch handler) = catchErrorWithCallStack eff handler
 
 catchError :: (Show e, IOE :> es) => Eff (Throws e : es) a -> (e -> Eff es a) -> Eff es a
-catchError eff handler = catchErrorWithCallStack eff $ \_ e -> handler e
+catchError eff handler = catchErrorWithCallStack eff $ \_ e -> do
+  liftIO $ putStrLn "catchError handler"
+  r <- handler e
+  liftIO $ putStrLn "post catchError handler"
+  pure r
 
 toEither :: (Show e, IOE :> es) => Eff (Throws e : es) a -> Eff es (Either e a)
 toEither eff = (eff <&> Right) `catchError` (pure . Left)
