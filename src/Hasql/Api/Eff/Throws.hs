@@ -79,11 +79,15 @@ catchErrorWithCallStack eff handler = unsafeEff $ \es0 -> do
     catchErrorIO
       eid
       -- unmask when running eff
-      (unmask (unEff eff es) `finally` unconsEnv es)
+      ( do
+          res <- unmask (unEff eff es) `onException` unconsEnv es
+          unconsEnv es
+          pure res
+      )
       $ \(ErrorWrapper _ cs e) ->
-        seqUnliftIO es0 $ \unlift ->
+        unmask $ seqUnliftIO es0 $ \unlift ->
           -- unmask when running handler
-          unmask $ unlift $ handler cs $ unsafeCoerce e
+          unlift $ handler cs $ unsafeCoerce e
 
 throwError ::
   forall e es a.
