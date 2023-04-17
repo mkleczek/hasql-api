@@ -2,6 +2,7 @@ module Hasql.Api.Eff.Throws (
   Throws,
   throwError,
   catchError,
+  cerr,
   -- catchErrorWithCallStack,
   -- onError,
   -- onErrorWithCallStack,
@@ -49,6 +50,11 @@ runErrorNoCallStack ::
   Eff (Throws e : es) a ->
   Eff es (Either e a)
 runErrorNoCallStack = fmap (either (Left . snd) Right) . runError
+
+cerr :: Eff (Throws e : es) a -> (e -> Eff es a) -> Eff es a
+cerr eff handler = do
+  res <- runErrorNoCallStack eff
+  either handler pure res
 
 -- | Throw an error of type @e@.
 throwError ::
