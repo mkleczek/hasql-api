@@ -81,9 +81,20 @@ catchErrorWithCallStack eff handler = unsafeEff $ \es0 -> do
     ( bracket
         (consEnv (Throws @e eid) dummyRelinker es0)
         unconsEnv
-        (unEff eff)
+        ( \es -> do
+            putStrLn "Inside bracket"
+            r <- unEff eff es
+            putStrLn "No error"
+            pure r
+        )
     )
-    $ \(ErrorWrapper _ cs e) -> unEff (handler cs $ unsafeCoerce e) es0
+    $ \(ErrorWrapper _ cs e) -> do
+      putStrLn "caught error"
+      print @e $ unsafeCoerce e
+      mapM_ putStrLn $ prettyCallStackLines cs
+      res <- unEff (inject $ handler cs $ unsafeCoerce e) es0
+      putStrLn "handled error"
+      pure res
 
 -- mask $ \unmask -> do
 --   eid <- newErrorId
