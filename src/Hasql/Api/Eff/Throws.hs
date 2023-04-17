@@ -84,10 +84,10 @@ catchErrorWithCallStack eff handler = unsafeEff $ \es0 -> do
           unconsEnv es
           pure res
       )
-      $ \ew@(ErrorWrapper _ cs e) -> do
+      $ \ew@(ErrorWrapper _ cs e) -> unmask $ do
         putStrLn "Handling error"
         print ew
-        unmask $ unEff (handler cs $ unsafeCoerce e) es0
+        unEff (handler cs $ unsafeCoerce e) es0
 
 throwError ::
   forall e es a.
