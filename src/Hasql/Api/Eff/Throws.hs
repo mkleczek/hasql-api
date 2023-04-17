@@ -30,18 +30,18 @@ runError ::
   forall e es a.
   Eff (Throws e : es) a ->
   Eff es (Either (CallStack, e) a)
-runError m = unsafeEff $ \es0 -> mask $ \unmask -> do
+runError m = unsafeEff $ \es0 -> do
   eid <- newErrorId
-  es <- consEnv (Throws @e eid) dummyRelinker es0
-  r <- tryErrorIO unmask eid es `onException` unconsEnv es
-  unconsEnv es
-  pure r
+  bracket
+    (consEnv (Throws @e eid) dummyRelinker es0)
+    unconsEnv
+    (tryErrorIO eid)
   where
-    tryErrorIO unmask eid es =
-      try (unmask $ unEff m es) >>= \case
+    tryErrorIO eid es =
+      try (unEff m es) >>= \case
         Right a -> pure $ Right a
         Left ex ->
-          tryHandler ex eid (\cs e -> Left (cs, e)) $
+          tryHandler ex eid (curry Left) $
             throwIO ex
 
 -- | Handle errors of type @e@. In case of an error discard the 'CallStack'.
@@ -54,7 +54,7 @@ runErrorNoCallStack = fmap (either (Left . snd) Right) . runError
 cerr :: Eff (Throws e : es) a -> (e -> Eff es a) -> Eff es a
 cerr eff handler = do
   res <- runErrorNoCallStack eff
-  either handler pure res
+  _
 
 -- | Throw an error of type @e@.
 throwError ::
