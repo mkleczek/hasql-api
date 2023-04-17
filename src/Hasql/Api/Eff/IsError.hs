@@ -30,7 +30,7 @@ class IsError eff e where
 -- catchErrorWithCallStack :: (CallStack -> e -> Eff es a) -> Catch e es a
 -- catchErrorWithCallStack = Catch
 
-instance IsError Throws e where
+instance Show e => IsError Throws e where
   throwError' = throwError
   catchError' = catchError
   catchErrorWithCallStack' = catchErrorWithCallStack

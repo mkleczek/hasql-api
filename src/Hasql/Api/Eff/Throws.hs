@@ -17,6 +17,7 @@ import Data.Unique
 import Effectful
 import Effectful.Dispatch.Static
 import Effectful.Dispatch.Static.Primitive
+import GHC.Exception (prettyCallStackLines)
 import GHC.Exts (Any)
 import GHC.Stack
 import Unsafe.Coerce (unsafeCoerce)
@@ -42,19 +43,19 @@ onErrorWithCallStack eff action = unsafeEff $ \es -> do
 -- letsTry :: Eff (Throws e : es) a -> Catch e es a -> Eff es a
 -- letsTry eff (Catch handler) = catchErrorWithCallStack eff handler
 
-catchError :: Eff (Throws e : es) a -> (e -> Eff es a) -> Eff es a
+catchError :: Show e => Eff (Throws e : es) a -> (e -> Eff es a) -> Eff es a
 catchError eff handler = catchErrorWithCallStack eff $ \_ e -> handler e
 
-toEither :: Eff (Throws e : es) a -> Eff es (Either e a)
+toEither :: Show e => Eff (Throws e : es) a -> Eff es (Either e a)
 toEither eff = (eff <&> Right) `catchError` (pure . Left)
 
 throwLeft :: (Throws e :> es) => Either e a -> Eff es a
 throwLeft = either throwError pure
 
-wrapErrorWithCallStack :: (Throws wrapper :> es) => Eff (Throws e : es) a -> (CallStack -> e -> wrapper) -> Eff es a
+wrapErrorWithCallStack :: (Show e, Throws wrapper :> es) => Eff (Throws e : es) a -> (CallStack -> e -> wrapper) -> Eff es a
 wrapErrorWithCallStack eff wrap = catchErrorWithCallStack eff $ \cs e -> throwError $ wrap cs e
 
-wrapError :: (Throws wrapper :> es) => Eff (Throws e : es) a -> (e -> wrapper) -> Eff es a
+wrapError :: (Show e, Throws wrapper :> es) => Eff (Throws e : es) a -> (e -> wrapper) -> Eff es a
 wrapError eff wrap = catchError eff $ throwError . wrap
 
 -- temp :: Eff '[] ()
@@ -69,6 +70,7 @@ wrapError eff wrap = catchError eff $ throwError . wrap
 
 catchErrorWithCallStack ::
   forall e es a.
+  Show e =>
   Eff (Throws e : es) a ->
   (CallStack -> e -> Eff es a) ->
   Eff es a
@@ -86,7 +88,8 @@ catchErrorWithCallStack eff handler = unsafeEff $ \es0 -> do
       )
       $ \ew@(ErrorWrapper _ cs e) -> unmask $ do
         putStrLn "Handling error"
-        print ew
+        print @e $ unsafeCoerce e
+        mapM_ putStrLn $ prettyCallStackLines cs
         res <- unEff (handler cs $ unsafeCoerce e) es0
         putStrLn "After handler"
         pure res
