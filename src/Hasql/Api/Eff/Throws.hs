@@ -75,24 +75,34 @@ catchErrorWithCallStack ::
   (CallStack -> e -> Eff es a) ->
   Eff es a
 catchErrorWithCallStack eff handler = unsafeEff $ \es0 -> do
-  mask $ \unmask -> do
-    eid <- newErrorId
-    es <- consEnv (Throws @e eid) dummyRelinker es0
-    catchErrorIO
-      eid
-      -- unmask when running eff
-      ( do
-          res <- unmask (unEff eff es) `onException` unconsEnv es
-          unconsEnv es
-          pure res
-      )
-      $ \ew@(ErrorWrapper _ cs e) -> unmask $ do
-        putStrLn "Handling error"
-        print @e $ unsafeCoerce e
-        mapM_ putStrLn $ prettyCallStackLines cs
-        res <- unEff (handler cs $ unsafeCoerce e) es0
-        putStrLn "After handler"
-        pure res
+  eid <- newErrorId
+  catchErrorIO
+    eid
+    ( bracket
+        (consEnv (Throws @e eid) dummyRelinker es0)
+        unconsEnv
+        (unEff eff)
+    )
+    $ \(ErrorWrapper _ cs e) -> unEff (handler cs $ unsafeCoerce e) es0
+
+-- mask $ \unmask -> do
+--   eid <- newErrorId
+--   es <- consEnv (Throws @e eid) dummyRelinker es0
+--   catchErrorIO
+--     eid
+--     -- unmask when running eff
+--     ( do
+--         res <- unmask (unEff eff es) `onException` unconsEnv es
+--         unconsEnv es
+--         pure res
+--     )
+--     $ \ew@(ErrorWrapper _ cs e) -> unmask $ do
+--       putStrLn "Handling error"
+--       print @e $ unsafeCoerce e
+--       mapM_ putStrLn $ prettyCallStackLines cs
+--       res <- unEff (handler cs $ unsafeCoerce e) es0
+--       putStrLn "After handler"
+--       pure res
 
 throwError ::
   forall e es a.

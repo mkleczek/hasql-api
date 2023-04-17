@@ -35,7 +35,7 @@ runSession connection = interpret $ \env e -> do
           SqlStatement params stmt -> S.statement params stmt
       )
       connection
-  either throwError pure er
+  throwLeft er
 
 {-# INLINE runSessionWithConnectionReader #-}
 runSessionWithConnectionReader :: (IOE :> es, Throws S.QueryError :> es, Reader S.Connection :> es) => Eff (SqlEff ByteString S.Statement : es) result -> Eff es result
