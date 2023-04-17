@@ -92,7 +92,7 @@ catchErrorWithCallStack eff handler = unsafeEff $ \es0 -> do
       putStrLn "caught error"
       print @e $ unsafeCoerce e
       mapM_ putStrLn $ prettyCallStackLines cs
-      res <- unEff (inject $ handler cs $ unsafeCoerce e) es0
+      res <- unEff (handler cs $ unsafeCoerce e) es0
       putStrLn "handled error"
       pure res
 

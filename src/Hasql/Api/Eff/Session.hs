@@ -19,7 +19,7 @@ import Control.Monad.Error.Class (MonadError (..))
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader.Class (MonadReader (..))
 import Data.ByteString (ByteString)
-import Effectful (Eff, IOE, (:>))
+import Effectful (Eff, IOE, inject, (:>))
 import Effectful.Dispatch.Dynamic (send)
 import Effectful.Reader.Static (runReader)
 import qualified Effectful.Reader.Static as E
@@ -53,7 +53,7 @@ instance Monad Session where
 instance MonadError QueryError Session where
   throwError e = Session $ T.throwError e
   {-# INLINEABLE throwError #-}
-  catchError (Session eff) handler = Session $ T.catchError eff $ \e -> do
+  catchError (Session eff) handler = Session $ inject $ T.catchError eff $ \e -> do
     let (Session eff1) = handler0 e handler
     eff1
     where
