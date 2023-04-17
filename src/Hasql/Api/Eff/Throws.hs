@@ -43,19 +43,19 @@ onErrorWithCallStack eff action = unsafeEff $ \es -> do
 -- letsTry :: Eff (Throws e : es) a -> Catch e es a -> Eff es a
 -- letsTry eff (Catch handler) = catchErrorWithCallStack eff handler
 
-catchError :: Show e => Eff (Throws e : es) a -> (e -> Eff es a) -> Eff es a
+catchError :: (Show e, IOE :> es) => Eff (Throws e : es) a -> (e -> Eff es a) -> Eff es a
 catchError eff handler = catchErrorWithCallStack eff $ \_ e -> handler e
 
-toEither :: Show e => Eff (Throws e : es) a -> Eff es (Either e a)
+toEither :: (Show e, IOE :> es) => Eff (Throws e : es) a -> Eff es (Either e a)
 toEither eff = (eff <&> Right) `catchError` (pure . Left)
 
 throwLeft :: (Throws e :> es) => Either e a -> Eff es a
 throwLeft = either throwError pure
 
-wrapErrorWithCallStack :: (Show e, Throws wrapper :> es) => Eff (Throws e : es) a -> (CallStack -> e -> wrapper) -> Eff es a
+wrapErrorWithCallStack :: (Show e, IOE :> es, Throws wrapper :> es) => Eff (Throws e : es) a -> (CallStack -> e -> wrapper) -> Eff es a
 wrapErrorWithCallStack eff wrap = catchErrorWithCallStack eff $ \cs e -> throwError $ wrap cs e
 
-wrapError :: (Show e, Throws wrapper :> es) => Eff (Throws e : es) a -> (e -> wrapper) -> Eff es a
+wrapError :: (Show e, IOE :> es, Throws wrapper :> es) => Eff (Throws e : es) a -> (e -> wrapper) -> Eff es a
 wrapError eff wrap = catchError eff $ throwError . wrap
 
 -- temp :: Eff '[] ()
@@ -70,7 +70,7 @@ wrapError eff wrap = catchError eff $ throwError . wrap
 
 catchErrorWithCallStack ::
   forall e es a.
-  Show e =>
+  (Show e, IOE :> es) =>
   Eff (Throws e : es) a ->
   (CallStack -> e -> Eff es a) ->
   Eff es a
@@ -92,7 +92,13 @@ catchErrorWithCallStack eff handler = unsafeEff $ \es0 -> do
       putStrLn "caught error"
       print @e $ unsafeCoerce e
       mapM_ putStrLn $ prettyCallStackLines cs
-      res <- unEff (handler cs $ unsafeCoerce e) es0
+      res <-
+        unEff
+          ( do
+              liftIO $ putStrLn "handler nadler handler handler"
+              handler cs $ unsafeCoerce e
+          )
+          es0
       putStrLn "handled error"
       pure res
 

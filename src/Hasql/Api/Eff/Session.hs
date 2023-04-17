@@ -55,6 +55,7 @@ instance MonadError QueryError Session where
   {-# INLINEABLE throwError #-}
   catchError (Session eff) handler = Session $ inject $ T.catchError eff $ \e -> do
     let (Session eff1) = handler0 e handler
+    liftIO $ putStrLn "dupa"
     eff1
     where
       handler0 err h = do

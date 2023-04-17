@@ -4,9 +4,9 @@ import Effectful
 import GHC.Stack (CallStack)
 import Hasql.Api.Eff.Throws
 
-class IsError eff e where
+class IsError eff cstr e where
   throwError' :: (eff e :> es) => e -> Eff es a
-  catchError' :: Eff (eff e : es) a -> (e -> Eff es a) -> Eff es a
+  catchError' :: cstr es => Eff (eff e : es) a -> (e -> Eff es a) -> Eff es a
   catchErrorWithCallStack' :: Eff (eff e : es) a -> (CallStack -> e -> Eff es a) -> Eff es a
 
 -- newtype Catch e es a = Catch (CallStack -> e -> Eff es a)
@@ -30,7 +30,7 @@ class IsError eff e where
 -- catchErrorWithCallStack :: (CallStack -> e -> Eff es a) -> Catch e es a
 -- catchErrorWithCallStack = Catch
 
-instance Show e => IsError Throws e where
-  throwError' = throwError
-  catchError' = catchError
-  catchErrorWithCallStack' = catchErrorWithCallStack
+-- instance (Show e) => IsError Throws IOE e where
+--   throwError' = throwError
+--   catchError' = catchError
+--   catchErrorWithCallStack' = catchErrorWithCallStack
