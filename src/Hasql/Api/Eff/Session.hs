@@ -56,8 +56,7 @@ instance MonadError QueryError Session where
   {-# INLINEABLE throwError #-}
   catchError :: forall a. Session a -> (QueryError -> Session a) -> Session a
   catchError (Session eff) handler = do
-    liftIO $ putStrLn "MonadError.catchError"
-    Session $ T.catchError eff $ toEff . handler
+    Session $ T.catchError eff $ const $ toEff . handler
   {-# INLINEABLE catchError #-}
 
 instance MonadReader S.Connection Session where
