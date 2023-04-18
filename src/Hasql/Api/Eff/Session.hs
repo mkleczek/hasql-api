@@ -55,8 +55,7 @@ instance MonadError QueryError Session where
   throwError e = Session $ T.throwError e
   {-# INLINEABLE throwError #-}
   catchError :: forall a. Session a -> (QueryError -> Session a) -> Session a
-  catchError (Session eff) handler = do
-    Session $ T.cerr eff $ toEff . handler
+  catchError (Session eff) handler = Session $ T.catchError' eff $ inject . toEff . handler
   {-# INLINEABLE catchError #-}
 
 instance MonadReader S.Connection Session where
