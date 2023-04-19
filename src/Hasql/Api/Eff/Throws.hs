@@ -3,6 +3,7 @@ module Hasql.Api.Eff.Throws (
   throwError,
   catchError,
   catchError',
+  runErrorNoCallStack,
   -- catchErrorWithCallStack,
   -- onError,
   -- onErrorWithCallStack,
@@ -17,6 +18,7 @@ import Data.Unique
 import Effectful
 import Effectful.Dispatch.Static
 import Effectful.Dispatch.Static.Primitive
+import Effectful.Internal.Env (injectEnv)
 import GHC.Stack
 import Type.Reflection (Typeable)
 import Unsafe.Coerce (unsafeCoerce)
@@ -51,17 +53,26 @@ runErrorNoCallStack ::
   Eff es (Either e a)
 runErrorNoCallStack = fmap (either (Left . snd) Right) . runError
 
-catchError' :: forall e es a. Typeable e => Eff (Throws e : es) a -> (e -> Eff es a) -> Eff es a
+catchError' :: forall e es embeddedes handleres a. (Typeable e, Subset embeddedes es, Subset handleres es) => Eff (Throws e : embeddedes) a -> (e -> Eff handleres a) -> Eff es a
 catchError' eff handler = unsafeEff $ \es0 -> do
+  -- ces0 <- cloneEnv es0
   eid <- newErrorId
   catchErrorIO
     eid
     ( bracket
-        (consEnv (Throws @e eid) dummyRelinker es0)
+        ( do
+            injectedEs <- injectEnv @embeddedes es0
+            consEnv (Throws @e eid) dummyRelinker injectedEs
+        )
         unconsEnv
         (unEff eff)
     )
-    (const (flip unEff es0 . handler))
+    ( \_ e -> do
+        injectedEnv <- injectEnv @handleres es0
+        unEff (handler e) injectedEnv
+    )
+
+-- const $ flip unEff injectedEnv . handler)
 
 -- | Throw an error of type @e@.
 throwError ::
