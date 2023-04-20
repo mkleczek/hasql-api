@@ -3,6 +3,7 @@ module Hasql.Api.Eff.Session.Legacy (
   run,
 ) where
 
+import Data.ByteString
 import Effectful.Reader.Static (runReader)
 import Hasql.Api.Eff.Session hiding (run)
 import Hasql.Api.Eff.Util
@@ -16,4 +17,4 @@ instance Show (Statement p r) where
 run :: Session a -> S.Connection -> IO (Either QueryError a)
 run session connection = runWithHandler handler session
   where
-    handler eff = runInIO connection $ logSql $ runReader connection eff
+    handler eff = runInIO connection $ logSql @ByteString @Statement $ runReader connection eff
